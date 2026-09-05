@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 font-sans antialiased min-h-screen selection:bg-teal-500 selection:text-white;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Panel Sections Visibility */
+.panel-section {
+  display: none;
+}
+.panel-section.active {
+  display: block;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom Toggle Switch */
+.switch-input:checked + .switch-slider {
+  @apply bg-teal-600;
+}
+.switch-input:checked + .switch-slider:before {
+  transform: translateX(18px);
+}
+
+/* Review Card Actioned state */
+.review-item-card.actioned {
+  opacity: 0.2;
+  transform: scale(0.98);
+  pointer-events: none;
+  transition: all 0.3s ease;
+}

@@ -1,0 +1,6 @@
+facility_id,name,cluster_served,catchment_population,cold_chain_capacity,outreach_schedule
+F-01,District Central Hospital,C-01,500,1000,Mon-Fri
+F-02,North Migrant Health Post,C-02,300,500,"Mon,Wed,Fri"
+F-03,East River Clinic,C-03,250,400,"Tue,Thu"
+F-04,Nomadic Outreach Station,C-04,200,300,Seasonal
+F-05,Highland Community Clinic,C-05,15,50,Monthly

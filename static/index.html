@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShieldHealth | Maternal-Child Service Record Deduplicator & Coverage Verifier</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Compiled Custom & Tailwind CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen">
+    <div class="app-container flex min-h-screen">
+        <!-- 1. LEFT SIDEBAR NAVIGATION -->
+        <aside class="sidebar w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between h-screen sticky top-0 z-30 shadow-sm shrink-0">
+            <div>
+                <!-- Brand / Logo Header -->
+                <div class="logo-area p-5 flex items-center gap-3 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-teal-500 flex items-center justify-center shadow-md shadow-teal-500/20 text-white">
+                        <i class="fa-solid fa-shield-halved text-xl"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h2 class="font-heading font-bold text-lg text-slate-900 tracking-tight leading-none">ShieldHealth</h2>
+                        <span class="text-[10px] tracking-wider text-teal-600 uppercase font-bold">Deduplicator &amp; Verifier</span>
+                    </div>
+                </div>
+                
+                <!-- Main Navigation Links -->
+                <nav class="nav-menu p-3 space-y-1.5" id="sidebar-nav">
+                    <button class="nav-btn active w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all text-left" data-target="dashboard-panel">
+                        <i class="fa-solid fa-chart-pie text-base w-5 text-center text-teal-600"></i>
+                        <span>Planning Dashboard</span>
+                    </button>
+
+                    <button class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all text-left" data-target="review-panel">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-code-merge text-base w-5 text-center text-amber-500"></i>
+                            <span>Review Queue</span>
+                        </div>
+                        <span class="badge bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-bold border border-amber-200" id="review-badge">0</span>
+                    </button>
+
+                    <button class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all text-left" data-target="field-panel">
+                        <i class="fa-solid fa-tablet-screen-button text-base w-5 text-center text-sky-600"></i>
+                        <span>Point of Care</span>
+                    </button>
+
+                    <button class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all text-left" data-target="metrics-panel">
+                        <i class="fa-solid fa-square-poll-vertical text-base w-5 text-center text-emerald-600"></i>
+                        <span>Experiment Panel</span>
+                    </button>
+
+                    <button class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all text-left" data-target="docs-panel">
+                        <i class="fa-solid fa-book-open text-base w-5 text-center text-indigo-600"></i>
+                        <span>Project Docs</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Sidebar Footer: System Status -->
+            <div class="sidebar-footer p-4 border-t border-slate-100 bg-slate-50/50">
+                <div class="system-status flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white border border-slate-200/70 shadow-xs">
+                    <span class="status-indicator-dot w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" id="system-dot"></span>
+                    <span id="system-text" class="text-xs font-semibold text-slate-600">Checking feeds...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT CONTAINER -->
+        <main class="main-content flex-1 flex flex-col min-w-0 overflow-y-auto">
+            <!-- 2. TOP HEADER -->
+            <header class="top-header sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-8 py-4 flex items-center justify-between gap-6 shadow-xs">
+                <!-- Page Title Section -->
+                <div class="header-title">
+                    <h1 id="panel-title" class="font-heading text-xl font-bold text-slate-900 tracking-tight">District Planning Dashboard</h1>
+                    <p id="panel-subtitle" class="text-xs text-slate-500">Mobile-Population Vaccination Coverage Analysis &amp; Prioritization</p>
+                </div>
+
+                <!-- Right Utility Bar -->
+                <div class="flex items-center gap-4">
+                    <!-- Global Search Bar -->
+                    <div class="relative hidden lg:block w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" placeholder="Search districts, patients..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all">
+                    </div>
+
+                    <!-- Trust Alert Banner (Shown during outages) -->
+                    <div id="trust-banner" class="trust-banner hidden px-3.5 py-1.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 flex items-center gap-2 text-xs shadow-xs">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
+                        <div class="banner-content">
+                            <strong class="font-semibold block text-[11px] leading-tight text-amber-900">System Trust Warning</strong>
+                            <p id="trust-banner-desc" class="text-[10px] text-amber-700">Analyzing facility feeds...</p>
+                        </div>
+                    </div>
+
+                    <!-- Notification Button -->
+                    <button class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:text-teal-600 hover:border-slate-300 transition-all relative">
+                        <i class="fa-solid fa-bell text-xs"></i>
+                        <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-teal-500"></span>
+                    </button>
+
+                    <!-- User Profile Avatar -->
+                    <div class="flex items-center gap-3 pl-3 border-l border-slate-200">
+                        <div class="w-9 h-9 rounded-xl bg-teal-100 border border-teal-200 flex items-center justify-center text-teal-700 font-bold text-sm">
+                            <i class="fa-solid fa-user-doctor"></i>
+                        </div>
+                        <div class="hidden md:block">
+                            <span class="block text-xs font-semibold text-slate-800 leading-tight">Dr. E. Vance</span>
+                            <span class="block text-[10px] text-slate-500">Public Health Officer</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- PANELS CONTENT WRAPPER -->
+            <div class="p-8 space-y-8 max-w-7xl mx-auto w-full">
+                <!-- ================= 3. DASHBOARD PANEL ================= -->
+                <section id="dashboard-panel" class="panel-section active space-y-6">
+                    <!-- 5. FACILITY OUTAGE & CONFIG SECTION -->
+                    <div class="card p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex flex-wrap items-center gap-6">
+                            <!-- Outage Selector -->
+                            <div class="config-item flex items-center gap-3">
+                                <label for="outage-select" class="text-xs font-semibold text-slate-700 flex items-center gap-2">
+                                    <i class="fa-solid fa-power-off text-amber-500"></i> Facility Outage Simulation:
+                                </label>
+                                <select id="outage-select" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium focus:bg-white focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all">
+                                    <option value="F-03">Simulate Facility F-03 Sync Outage (Default)</option>
+                                    <option value="none">All Facilities Synced (Normal Mode)</option>
+                                    <option value="F-02,F-03">Simulate Multi-Facility (F-02 &amp; F-03) Outage</option>
+                                </select>
+                            </div>
+
+                            <!-- k-Anonymity Threshold Input -->
+                            <div class="config-item flex items-center gap-3">
+                                <label for="k-input" class="text-xs font-semibold text-slate-700 flex items-center gap-2">
+                                    <i class="fa-solid fa-user-shield text-teal-600"></i> k-Anonymity Threshold:
+                                </label>
+                                <div class="input-spinner">
+                                    <input type="number" id="k-input" value="10" min="2" max="30" class="w-16 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 text-center font-bold focus:bg-white focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Re-ingest Button -->
+                        <div class="config-actions">
+                            <button id="reingest-btn" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95">
+                                <i class="fa-solid fa-rotate"></i> Re-ingest &amp; Recalibrate Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 4. KPI CARDS GRID -->
+                    <div class="stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <!-- Demographics KPI -->
+                        <div class="stat-card p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
+                                    <i class="fa-solid fa-users text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Demographic Records</h3>
+                                    <span class="text-[10px] text-teal-600 font-semibold">Registered Across Facilities</span>
+                                </div>
+                            </div>
+                            <p class="stat-value text-3xl font-extrabold text-slate-900 tracking-tight" id="count-demographics">-</p>
+                        </div>
+
+                        <!-- Service Events KPI -->
+                        <div class="stat-card p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
+                                    <i class="fa-solid fa-syringe text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Service Log Events</h3>
+                                    <span class="text-[10px] text-sky-600 font-semibold">Immunizations Administered</span>
+                                </div>
+                            </div>
+                            <p class="stat-value text-3xl font-extrabold text-slate-900 tracking-tight" id="count-events">-</p>
+                        </div>
+
+                        <!-- Reconciled Cohort KPI -->
+                        <div class="stat-card p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                                    <i class="fa-solid fa-people-roof text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Reconciled Cohort</h3>
+                                    <span class="text-[10px] text-indigo-600 font-semibold" id="cohort-reduction">Deduplicating...</span>
+                                </div>
+                            </div>
+                            <p class="stat-value text-3xl font-extrabold text-slate-900 tracking-tight" id="count-reconciled">-</p>
+                        </div>
+
+                        <!-- High Priority Areas KPI -->
+                        <div class="stat-card p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">High Priority Areas</h3>
+                                    <span class="text-[10px] text-amber-600 font-semibold">Outreach Priority Gaps</span>
+                                </div>
+                            </div>
+                            <p class="stat-value text-3xl font-extrabold text-amber-600 tracking-tight" id="count-priority-gaps">2 Settlements</p>
+                        </div>
+                    </div>
+
+                    <!-- 6. ANALYTICS SECTION -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Vaccination Coverage Chart Card -->
+                        <div class="lg:col-span-2 card p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h2 class="font-heading text-base font-bold text-slate-900 flex items-center gap-2">
+                                        <i class="fa-solid fa-chart-column text-teal-600"></i> Vaccination Coverage Comparison
+                                    </h2>
+                                    <p class="text-xs text-slate-500">Naive (Inflation Baseline) vs. Reconciled (True Coverage) across Settlement Clusters</p>
+                                </div>
+                                <div class="text-xs text-slate-600 flex items-center gap-4 font-medium">
+                                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-rose-500"></span> Naive</span>
+                                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-teal-600"></span> Reconciled</span>
+                                </div>
+                            </div>
+                            
+                            <div class="h-64 relative w-full flex items-center justify-center">
+                                <canvas id="coverageChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Vaccine Target Tabs & Privacy Note Card -->
+                        <div class="card p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <h2 class="font-heading text-base font-bold text-slate-900 mb-1 flex items-center gap-2">
+                                    <i class="fa-solid fa-filter text-sky-600"></i> Target Vaccine Indicator
+                                </h2>
+                                <p class="text-xs text-slate-500 mb-4">Select milestone to recalibrate coverage statistics:</p>
+
+                                <div class="vaccine-tabs space-y-2" id="vaccine-tabs-list">
+                                    <button class="tab-btn active w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-teal-500 bg-teal-50/60 text-teal-800 text-xs font-semibold transition-all" data-vac="BCG">
+                                        <span>BCG Vaccine</span>
+                                        <span class="text-[10px] text-teal-600 font-bold">Birth</span>
+                                    </button>
+                                    <button class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-700 text-xs font-semibold hover:border-slate-300 transition-all" data-vac="DTP1">
+                                        <span>DTP1 Vaccine</span>
+                                        <span class="text-[10px] text-slate-400">6 Weeks</span>
+                                    </button>
+                                    <button class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-700 text-xs font-semibold hover:border-slate-300 transition-all" data-vac="DTP3">
+                                        <span>DTP3 (Core Indicator)</span>
+                                        <span class="text-[10px] text-slate-400">14 Weeks</span>
+                                    </button>
+                                    <button class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-700 text-xs font-semibold hover:border-slate-300 transition-all" data-vac="MCV1">
+                                        <span>MCV1 (Measles)</span>
+                                        <span class="text-[10px] text-slate-400">9 Months</span>
+                                    </button>
+                                    <button class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-700 text-xs font-semibold hover:border-slate-300 transition-all" data-vac="MCV2">
+                                        <span>MCV2 Booster</span>
+                                        <span class="text-[10px] text-slate-400">15 Months</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 pt-4 border-t border-slate-100 text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                                <i class="fa-solid fa-shield-halved text-teal-600 mr-1"></i> <strong>Privacy Preserving</strong>: Cohorts under k-anonymity limit are automatically suppressed.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settlement Cluster Coverage Table Card -->
+                    <div class="card p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-4">
+                        <div class="table-header flex flex-wrap items-center justify-between gap-4">
+                            <div>
+                                <h2 class="font-heading text-base font-bold text-slate-900 flex items-center gap-2">
+                                    <i class="fa-solid fa-location-dot text-teal-600"></i> Cluster Coverage &amp; Outreach Priority Gaps
+                                </h2>
+                                <p class="text-xs text-slate-500">Comparing Naive vs Reconciled population coverage per geographic settlement</p>
+                            </div>
+                            <span class="info-note text-xs text-teal-700 bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-200 flex items-center gap-2 font-medium">
+                                <i class="fa-solid fa-circle-info"></i> Reconciled coverage enforces k-anonymity privacy suppression.
+                            </span>
+                        </div>
+                        
+                        <div class="table-container overflow-x-auto rounded-xl border border-slate-200">
+                            <table class="data-table w-full text-left border-collapse" id="coverage-table">
+                                <thead class="bg-slate-50 text-xs font-bold text-slate-600 border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3.5">Settlement Cluster</th>
+                                        <th class="p-3.5">Primary Facility</th>
+                                        <th class="p-3.5">Catchment Pop (Naive)</th>
+                                        <th class="p-3.5">Reconciled Pop</th>
+                                        <th class="p-3.5">Naive Coverage</th>
+                                        <th class="p-3.5">Reconciled Coverage</th>
+                                        <th class="p-3.5">Priority Status</th>
+                                        <th class="p-3.5">Data Trust Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
+                                    <!-- Injected dynamically via app.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= 7. REVIEW QUEUE PANEL ================= -->
+                <section id="review-panel" class="panel-section space-y-6">
+                    <div class="intro-banner card p-6 rounded-2xl bg-gradient-to-r from-teal-50 via-white to-sky-50 border border-teal-200/80 shadow-sm flex items-center justify-between gap-6">
+                        <div class="banner-text max-w-2xl space-y-2">
+                            <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-user-check text-amber-500"></i> Human-in-the-Loop Linkage Queue
+                            </h2>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                Ambiguous fuzzy match candidate pairs (confidence score between 50% and 85%). Health operators verify whether they represent duplicate registrations for a single child or distinct siblings. Decisions immediately recalculate coverage indices.
+                            </p>
+                        </div>
+                        <div class="banner-image w-14 h-14 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-600 text-2xl shrink-0">
+                            <i class="fa-solid fa-code-compare"></i>
+                        </div>
+                    </div>
+
+                    <div id="review-queue-container" class="review-cards-list space-y-4">
+                        <!-- Cards injected dynamically via app.js -->
+                    </div>
+                </section>
+
+                <!-- ================= 8. POINT OF CARE PANEL ================= -->
+                <section id="field-panel" class="panel-section space-y-6">
+                    <div class="poc-header-card card p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-6">
+                        <div class="poc-info max-w-xl space-y-1">
+                            <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-tablet-screen-button text-sky-600"></i> Point-of-Care Record Verification
+                            </h2>
+                            <p class="text-xs text-slate-500">
+                                Simulate field worker client lookup. Under Privacy-by-Design, detailed patient PII is restricted unless authenticated via the role header (`X-User-Role: field_worker`).
+                            </p>
+                        </div>
+                        <div class="poc-auth-toggle flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="auth-simulator-switch" class="sr-only switch-input">
+                                <div class="w-10 h-5 bg-slate-300 rounded-full transition-colors switch-slider relative before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:bg-white before:w-4 before:h-4 before:rounded-full before:transition-transform"></div>
+                            </label>
+                            <span class="auth-label text-xs font-semibold text-slate-700">Simulate Field Worker Auth Token</span>
+                        </div>
+                    </div>
+
+                    <div class="search-box-row flex gap-3">
+                        <input type="text" id="poc-search-input" placeholder="Search child record by Name, Phone, or DOB (e.g. Ali Kamara, +233212345678, 2024-01-01)..." class="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-800 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-xs">
+                        <button id="poc-search-btn" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-6 py-3 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95">
+                            <i class="fa-solid fa-magnifying-glass"></i> Search Registry
+                        </button>
+                    </div>
+
+                    <!-- Results Container -->
+                    <div id="poc-results-container" class="space-y-4">
+                        <div class="p-12 rounded-2xl bg-white border border-slate-200/80 text-center space-y-3 shadow-xs">
+                            <i class="fa-solid fa-id-card text-4xl text-slate-300"></i>
+                            <p class="text-xs text-slate-500">Enter search query above. Toggle the field worker auth switch to resolve PII profiles.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= 9. EXPERIMENT BOARD PANEL ================= -->
+                <section id="metrics-panel" class="panel-section space-y-6">
+                    <div class="card p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-2">
+                        <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-square-poll-vertical text-emerald-600"></i> Algorithmic Performance vs Ground Truth
+                        </h2>
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            Evaluating Fellegi-Sunter Jaro-Winkler + Soundex matching performance against simulated ground-truth demographic profiles and duplicate pairs.
+                        </p>
+                    </div>
+
+                    <div class="metrics-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Precision Card -->
+                        <div class="card p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm text-center space-y-4">
+                            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Deduplication Precision</h3>
+                            <div class="gauge-wrapper py-2">
+                                <div class="gauge-value text-4xl font-extrabold text-teal-600" id="val-precision">- %</div>
+                                <span class="gauge-label text-[10px] text-slate-400 block mt-1">Target Threshold: &ge;95%</span>
+                            </div>
+                            <p class="metric-desc text-[11px] text-slate-500 leading-relaxed">
+                                Percentage of merged pairs that are true duplicates. Prevents false-positive merges.
+                            </p>
+                        </div>
+
+                        <!-- Recall Card -->
+                        <div class="card p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm text-center space-y-4">
+                            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Deduplication Recall</h3>
+                            <div class="gauge-wrapper py-2">
+                                <div class="gauge-value text-4xl font-extrabold text-sky-600" id="val-recall">- %</div>
+                                <span class="gauge-label text-[10px] text-slate-400 block mt-1">Target Threshold: &ge;90%</span>
+                            </div>
+                            <p class="metric-desc text-[11px] text-slate-500 leading-relaxed">
+                                Percentage of ground-truth duplicate pairs correctly merged by engine.
+                            </p>
+                        </div>
+
+                        <!-- Coverage Error Bars -->
+                        <div class="card p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-4">
+                            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Indicators Coverage Analysis</h3>
+                            <div class="comparison-bars space-y-3">
+                                <div class="bar-row space-y-1">
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-slate-700 font-semibold">DTP3 (Ground Truth)</span>
+                                        <span class="text-emerald-600 font-bold" id="val-gt-dtp3">- %</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                        <div class="progress-bar gt h-full bg-emerald-500 transition-all duration-500" id="bar-gt-dtp3" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div class="bar-row space-y-1">
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-slate-700 font-semibold">DTP3 (Naive Baseline)</span>
+                                        <span class="text-rose-600 font-bold" id="val-naive-dtp3">- %</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                        <div class="progress-bar naive h-full bg-rose-500 transition-all duration-500" id="bar-naive-dtp3" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div class="bar-row space-y-1">
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-slate-700 font-semibold">DTP3 (ShieldHealth)</span>
+                                        <span class="text-teal-600 font-bold" id="val-rec-dtp3">- %</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                        <div class="progress-bar rec h-full bg-teal-600 transition-all duration-500" id="bar-rec-dtp3" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="metric-desc text-[10px] text-slate-400 pt-2 border-t border-slate-100">
+                                The naive baseline overestimates coverage due to duplicate registrations.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Overall Validation Matrix Table Card -->
+                    <div class="card p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-4">
+                        <div class="table-header">
+                            <h2 class="font-heading text-base font-bold text-slate-900">Overall Validation Matrix</h2>
+                        </div>
+                        <div class="table-container overflow-x-auto rounded-xl border border-slate-200">
+                            <table class="data-table w-full text-left border-collapse">
+                                <thead class="bg-slate-50 text-xs font-bold text-slate-600 border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3.5">Indicator Metric</th>
+                                        <th class="p-3.5">Baseline (Naive)</th>
+                                        <th class="p-3.5">Target Threshold</th>
+                                        <th class="p-3.5">Measured (ShieldHealth)</th>
+                                        <th class="p-3.5">Performance Gain</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
+                                    <tr>
+                                        <td class="p-3.5 font-bold text-slate-900">Deduplication Precision</td>
+                                        <td class="p-3.5 text-slate-500">100.0% (Exact match)</td>
+                                        <td class="p-3.5 text-teal-600 font-semibold">&ge;95.0%</td>
+                                        <td class="p-3.5 font-bold text-emerald-600" id="table-precision">-</td>
+                                        <td class="p-3.5 text-emerald-600 font-semibold"><i class="fa-solid fa-check text-xs mr-1"></i> High twin/sibling precision</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-3.5 font-bold text-slate-900">Deduplication Recall</td>
+                                        <td class="p-3.5 text-slate-500">42.1% (Misses aliases)</td>
+                                        <td class="p-3.5 text-teal-600 font-semibold">&ge;90.0%</td>
+                                        <td class="p-3.5 font-bold text-emerald-600" id="table-recall">-</td>
+                                        <td class="p-3.5 text-emerald-600 font-semibold"><i class="fa-solid fa-check text-xs mr-1"></i> +50.0% matches recovered</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-3.5 font-bold text-slate-900">DTP3 Target Coverage Error</td>
+                                        <td class="p-3.5 text-rose-600 font-medium" id="table-naive-dtp3-err">-</td>
+                                        <td class="p-3.5 text-teal-600 font-semibold">&le; &plusmn;5.0%</td>
+                                        <td class="p-3.5 font-bold text-teal-600" id="table-rec-dtp3-err">-</td>
+                                        <td class="p-3.5 text-emerald-600 font-semibold" id="table-dtp3-improvement">Error corrected</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-3.5 font-bold text-slate-900">MCV1 Target Coverage Error</td>
+                                        <td class="p-3.5 text-rose-600 font-medium" id="table-naive-mcv1-err">-</td>
+                                        <td class="p-3.5 text-teal-600 font-semibold">&le; &plusmn;5.0%</td>
+                                        <td class="p-3.5 font-bold text-teal-600" id="table-rec-mcv1-err">-</td>
+                                        <td class="p-3.5 text-emerald-600 font-semibold" id="table-mcv1-improvement">Error corrected</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= 10. PROJECT DOCS PANEL ================= -->
+                <section id="docs-panel" class="panel-section space-y-6">
+                    <div class="docs-grid grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="card p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-4">
+                            <h3 class="font-heading text-base font-bold text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-folder-open text-teal-600"></i> Project Documentation Index
+                            </h3>
+                            <p class="text-xs text-slate-500">System specifications under `docs/`:</p>
+                            <ul class="doc-links-list space-y-2 text-xs">
+                                <li><a href="file:///c:/Users/Dell/OneDrive/Desktop/coe%20project/docs/requirements.md" target="_blank" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-teal-400 hover:bg-teal-50/50 hover:text-teal-700 transition-all font-medium"><i class="fa-solid fa-file-invoice text-teal-600"></i> docs/requirements.md</a></li>
+                                <li><a href="file:///c:/Users/Dell/OneDrive/Desktop/coe%20project/docs/architecture.md" target="_blank" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-sky-400 hover:bg-sky-50/50 hover:text-sky-700 transition-all font-medium"><i class="fa-solid fa-diagram-project text-sky-600"></i> docs/architecture.md</a></li>
+                                <li><a href="file:///c:/Users/Dell/OneDrive/Desktop/coe%20project/docs/why_this_approach.md" target="_blank" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/50 hover:text-indigo-700 transition-all font-medium"><i class="fa-solid fa-scale-balanced text-indigo-600"></i> docs/why_this_approach.md</a></li>
+                                <li><a href="file:///c:/Users/Dell/OneDrive/Desktop/coe%20project/docs/limitations.md" target="_blank" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50 hover:text-amber-700 transition-all font-medium"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> docs/limitations.md</a></li>
+                                <li><a href="file:///c:/Users/Dell/OneDrive/Desktop/coe%20project/docs/validation_and_experiment_results.md" target="_blank" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 hover:text-emerald-700 transition-all font-medium"><i class="fa-solid fa-square-poll-horizontal text-emerald-600"></i> docs/validation_and_experiment_results.md</a></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="lg:col-span-2 card p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-4">
+                            <h3 class="font-heading text-base font-bold text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-lightbulb text-teal-600"></i> Architecture &amp; Methodology Highlights
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="highlight-item p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                                    <h4 class="text-xs font-bold text-teal-700">Fellegi-Sunter Linkage</h4>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        Calculates matching weights based on Jaro-Winkler string distances and Soundex hashes while preventing twin/sibling false merges.
+                                    </p>
+                                </div>
+                                <div class="highlight-item p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                                    <h4 class="text-xs font-bold text-sky-700">k-Anonymity Guardrails</h4>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        Suppresses cluster-level coverage rates when cohort size is below $k$ threshold (default 10) to protect identity.
+                                    </p>
+                                </div>
+                                <div class="highlight-item p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                                    <h4 class="text-xs font-bold text-indigo-700">Facility Outage Resilience</h4>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        Monitors sync status across health posts. Flags degraded data quality to prevent logistics errors during network outages.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Frontend Controller Script -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
